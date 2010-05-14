@@ -1,8 +1,11 @@
 # glob
 
-Finds files based on glob patterns like "*.jpg" or "/usr/*/se*". Similar to glob in Perl, Ruby, and PHP.
+Finds files based on glob patterns like `"*.jpg"` or `"/usr/*/se*"`. Similar to glob in Perl, Ruby, and PHP.
 
 ## Usage
+
+    (ns foo.bar
+      (:use org.satta.glob))
 
     (glob "*.{jpg,gif}")
 
@@ -12,8 +15,9 @@ Finds files based on glob patterns like "*.jpg" or "/usr/*/se*". Similar to glob
 
 ## Installation
 
-    (ns foo.bar
-      (:use org.satta.glob))
+Add this dependency to your project.clj:
+
+    [clj-glob "0.1.0"]
 
 ## License
 

@@ -25,6 +25,10 @@
          (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur j (str re \\ c) curly-depth)
          :else (recur j (str re c) curly-depth))))))
 
+(defn in-dir
+  [abs? pattern]
+  (File. (if abs? "/" ".")))
+
 (defn glob
   "Returns a list of java.io.File instances that match the given glob pattern.
   Ignores dot files unless explicitly included.
@@ -32,7 +36,7 @@
   Examples: (glob \"*.{jpg,gif}\") (glob \".*\") (glob \"/usr/*/se*\")"
   [pattern]
   (let [abs-path? (= \/ (first pattern))
-        start-dir (File. (if abs-path? "/" "."))
+        start-dir (in-dir abs-path? pattern)
         patterns (map glob->regex
                       (.split (if abs-path? (subs pattern 1) pattern) "/"))
         expand (fn [re dir]

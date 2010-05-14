@@ -52,3 +52,32 @@
        "foo.[ch]"    "foo.d"
        "foo.[c-h]"   "foo.b"
        "foo.[c-h]"   "foo.i"))
+
+(defmacro mock
+  "Creates a mock object given class name and pairs of method stubs."
+  [class & stubs]
+  (let [mocked (gensym)]
+    `(let [~mocked (org.mockito.Mockito/mock ~class)]
+       ~@(map (fn [[method returns]]
+		(list '.thenReturn
+		    (list 'org.mockito.Mockito/when (list (symbol (str \. method)) mocked)) returns))
+	      (partition 2 stubs))
+       ~mocked)))
+
+;;; first cut. should be a multimethod! (or something)
+(defn- mock-fs
+  "Takes a tree of vectors and returns a mock file/dir heirarchy"
+  [file]
+  (if (vector? file)
+    (let [[dir & files] file
+	  children (into-array java.io.File (map mock-fs files))]
+      (mock java.io.File
+	    getName dir
+	    isDirectory true
+	    isFile false
+	    listFiles children))
+    (mock java.io.File
+	  getName file
+	  isDirectory false
+	  isFile true)))
+

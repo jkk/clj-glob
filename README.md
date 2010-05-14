@@ -19,6 +19,10 @@ Add this dependency to your project.clj:
 
     [clj-glob "0.1.0"]
 
+## Caveats
+
+Untested on Windows.
+
 ## License
 
 EPL

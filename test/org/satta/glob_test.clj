@@ -2,7 +2,7 @@
   (:use [org.satta.glob] :reload-all)
   (:use [clojure.test]))
 
-;; TODO: test glob, maybe with some kind of temp file/dir scaffolding?
+;; glob->regex ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def glob->regex #'org.satta.glob/glob->regex)
 
@@ -53,6 +53,8 @@
        "foo.[c-h]"   "foo.b"
        "foo.[c-h]"   "foo.i"))
 
+;; glob ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defmacro mock
   "Creates a mock object given class name and pairs of method stubs."
   [class & stubs]
@@ -64,9 +66,8 @@
 	      (partition 2 stubs))
        ~mocked)))
 
-;;; first cut. should be a multimethod! (or something)
 (defn- mock-fs
-  "Takes a tree of vectors and returns a mock file/dir heirarchy"
+  "Takes a tree of vectors and returns a mock file/dir hierarchy"
   [file]
   (if (vector? file)
     (let [[dir & files] file
@@ -81,3 +82,39 @@
 	  isDirectory false
 	  isFile true)))
 
+(def shallow-fs
+     (mock-fs
+      ["." "cat.jpg" "dog.jpg" "lol.gif" ".hidden"]))
+
+(def deep-fs
+     (mock-fs
+      ["/"
+       ["usr"
+        ["bin" "awk" "bzip" "cd" "diff" "sed" "segedit" "xargs"]
+        ["lib" "pam" "samba" "java"]
+        ["sbin" "arp" "fdisk" "sendmail" "tcpdump"]
+        ["share"
+         ["man" "man1" "man2" "man3"]]]]))
+
+(defn glob*
+  "Glob with rebindable start-dir. Also returns seq of file names rather
+  than File instances."
+  [pattern start-dir]
+  (binding [org.satta.glob/init-start-dir (fn [_] start-dir)]
+    (map #(.getName %) (glob pattern))))
+
+(deftest glob-matches-shallow
+  (are [pattern files] (= (glob* pattern shallow-fs) files)
+       "*"            ["cat.jpg" "dog.jpg" "lol.gif"]
+       "*.*"          ["cat.jpg" "dog.jpg" "lol.gif"]
+       ".*"           [".hidden"]
+       "*.jpg"        ["cat.jpg" "dog.jpg"]
+       "*.{jpg,gif}"  ["cat.jpg" "dog.jpg" "lol.gif"]))
+
+(deftest glob-matches-deep
+  (are [pattern files] (= (glob* pattern deep-fs) files)
+       "/*"         ["usr"]
+       "/usr/*"     ["bin" "lib" "sbin" "share"]
+       "/usr/*/se*" ["sed" "segedit" "sendmail"]
+       "/*/*/a*"    ["awk" "arp"]
+       "/*/*/*/*"   ["man1" "man2" "man3"]))

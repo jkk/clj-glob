@@ -61,9 +61,10 @@
   (let [mocked (gensym)]
     `(let [~mocked (org.mockito.Mockito/mock ~class)]
        ~@(map (fn [[method returns]]
-		(list '.thenReturn
-		    (list 'org.mockito.Mockito/when (list (symbol (str \. method)) mocked)) returns))
-	      (partition 2 stubs))
+                (list '.thenReturn
+                      (list 'org.mockito.Mockito/when
+                            (list (symbol (str \. method)) mocked)) returns))
+              (partition 2 stubs))
        ~mocked)))
 
 (defn- mock-fs
@@ -71,16 +72,16 @@
   [file]
   (if (vector? file)
     (let [[dir & files] file
-	  children (into-array java.io.File (map mock-fs files))]
+          children (into-array java.io.File (map mock-fs files))]
       (mock java.io.File
-	    getName dir
-	    isDirectory true
-	    isFile false
-	    listFiles children))
+            getName dir
+            isDirectory true
+            isFile false
+            listFiles children))
     (mock java.io.File
-	  getName file
-	  isDirectory false
-	  isFile true)))
+          getName file
+          isDirectory false
+          isFile true)))
 
 (def shallow-fs
      (mock-fs

@@ -1,4 +1,5 @@
 (ns org.satta.glob
+  (:use [clojure.contrib.io :only [as-file]])
   (:import [java.io File StringReader]))
 
 ;; TODO: make Windows-friendly
@@ -25,12 +26,6 @@
          (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur j (str re \\ c) curly-depth)
          :else (recur j (str re c) curly-depth))))))
 
-(defn- init-start-dir
-  "This is only here to allow dynamic rebinding when testing with a mock
-  filesystem"
-  [abs-path?]
-  (File. (if abs-path? "/" ".")))
-
 (defn glob
   "Returns a list of java.io.File instances that match the given glob pattern.
   Ignores dot files unless explicitly included.
@@ -38,7 +33,7 @@
   Examples: (glob \"*.{jpg,gif}\") (glob \".*\") (glob \"/usr/*/se*\")"
   [pattern]
   (let [abs-path? (= \/ (first pattern))
-        start-dir (init-start-dir abs-path?)
+        start-dir (as-file (if abs-path? "/" "."))
         patterns (map glob->regex
                       (.split (if abs-path? (subs pattern 1) pattern) "/"))
         expand (fn [re dir]

@@ -98,10 +98,10 @@
          ["man" "man1" "man2" "man3"]]]]))
 
 (defn glob*
-  "Glob with rebindable start-dir. Also returns seq of file names rather
+  "Glob with a fake filesystem. Also returns seq of file names rather
   than File instances."
   [pattern start-dir]
-  (binding [org.satta.glob/init-start-dir (fn [_] start-dir)]
+  (binding [clojure.contrib.io/as-file (fn [_] start-dir)]
     (map #(.getName %) (glob pattern))))
 
 (deftest glob-matches-shallow

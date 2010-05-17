@@ -26,22 +26,26 @@
        "*.{bar,baz}" "foo.baz"
        "{foo,bar}"   "foo"
        "{foo,bar}"   "bar"
+       "foo,bar"     "foo,bar"
+       "*,*"         "foo,bar"
+       "foo\\*bar"   "foo*bar"
+       ".()|+^$@%"   ".()|+^$@%"
        "foo/bar.*"   "foo/bar.baz"
        "foo/*.baz"   "foo/bar.baz"
        "*/*"         "foo/bar.baz"
        ".*.foo"      ".bar.foo"
        ".*bar.foo"   ".bar.foo"
-       ".*/bar"        ".foo/bar"
+       ".*/bar"      ".foo/bar"
        "foo.[ch]"    "foo.c"
        "foo.[ch]"    "foo.h"
        "foo.[c-h]"   "foo.c"
        "foo.[c-h]"   "foo.e"
-       "foo.[c-h]"   "foo.f"
        "foo.[c-h]"   "foo.h"))
 
 (deftest glob->regex-ignores-dotfiles
   (are [pattern path] (not (matches? pattern path))
-       "a*d"         "abc"
+       "*"           ".foo"
+       "*.*"         ".foo"
        "*.foo"       ".bar.foo"
        "*.bar.foo"   ".bar.foo"
        "?bar.foo"    ".bar.foo"))

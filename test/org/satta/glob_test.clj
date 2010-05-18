@@ -12,51 +12,52 @@
   [pattern path]
   (not (nil? (re-matches (glob->regex pattern) path))))
 
-(deftest glob->regex-matches-correctly
-  (are [pattern path] (matches? pattern path)
-       "abcd"        "abcd"
-       "a*d"         "abcd"
-       "a??d"        "abcd"
-       "*"           "abcd"
-       "foo.bar"     "foo.bar"
-       "foo.*"       "foo.bar"
-       "*.bar"       "foo.bar"
-       "*foo.*"      "foo.bar"
-       "foo*"        "foo.bar"
-       "*.{bar,baz}" "foo.bar"
-       "*.{bar,baz}" "foo.baz"
-       "{foo,bar}"   "foo"
-       "{foo,bar}"   "bar"
-       "foo,bar"     "foo,bar"
-       "*,*"         "foo,bar"
-       "foo\\*bar"   "foo*bar"
-       ".()|+^$@%"   ".()|+^$@%"
-       "foo/bar.*"   "foo/bar.baz"
-       "foo/*.baz"   "foo/bar.baz"
-       "*/*"         "foo/bar.baz"
-       ".*.foo"      ".bar.foo"
-       ".*bar.foo"   ".bar.foo"
-       ".*/bar"      ".foo/bar"
-       "foo.[ch]"    "foo.c"
-       "foo.[ch]"    "foo.h"
-       "foo.[c-h]"   "foo.c"
-       "foo.[c-h]"   "foo.e"
-       "foo.[c-h]"   "foo.h"))
-
-(deftest glob->regex-ignores-dotfiles
-  (are [pattern path] (not (matches? pattern path))
-       "*"           ".foo"
-       "*.*"         ".foo"
-       "*.foo"       ".bar.foo"
-       "*.bar.foo"   ".bar.foo"
-       "?bar.foo"    ".bar.foo"))
-
-(deftest glob->regex-char-range-nonmatch
-  (are [pattern path] (not (matches? pattern path))
-       "foo.[ch]"    "foo.a"
-       "foo.[ch]"    "foo.d"
-       "foo.[c-h]"   "foo.b"
-       "foo.[c-h]"   "foo.i"))
+(deftest test-glob->regex
+  (testing "General matching"
+    (are [pattern path] (matches? pattern path)
+         "abcd"        "abcd"
+         "a*d"         "abcd"
+         "a??d"        "abcd"
+         "*"           "abcd"
+         "foo.bar"     "foo.bar"
+         "foo.*"       "foo.bar"
+         "*.bar"       "foo.bar"
+         "*foo.*"      "foo.bar"
+         "foo*"        "foo.bar"
+         "*.{bar,baz}" "foo.bar"
+         "*.{bar,baz}" "foo.baz"
+         "{foo,bar}"   "foo"
+         "{foo,bar}"   "bar"
+         "foo,bar"     "foo,bar"
+         "*,*"         "foo,bar"
+         "foo\\*bar"   "foo*bar"
+         ".()|+^$@%"   ".()|+^$@%"
+         "foo/bar.*"   "foo/bar.baz"
+         "foo/*.baz"   "foo/bar.baz"
+         "*/*"         "foo/bar.baz"
+         ".*.foo"      ".bar.foo"
+         ".*bar.foo"   ".bar.foo"
+         ".*/bar"      ".foo/bar"
+         "foo/.*"      "foo/.bar"
+         "foo.[ch]"    "foo.c"
+         "foo.[ch]"    "foo.h"
+         "foo.[c-h]"   "foo.c"
+         "foo.[c-h]"   "foo.e"
+         "foo.[c-h]"   "foo.h"))
+  (testing "Dot files ignored"
+    (are [pattern path] (not (matches? pattern path))
+         "*"           ".foo"
+         "*.*"         ".foo"
+         "*.foo"       ".bar.foo"
+         "*.bar.foo"   ".bar.foo"
+         "foo/*"       "foo/.bar"
+         "?bar.foo"    ".bar.foo"))
+  (testing "Character ranges that shouldn't match"
+    (are [pattern path] (not (matches? pattern path))
+         "foo.[ch]"    "foo.a"
+         "foo.[ch]"    "foo.d"
+         "foo.[c-h]"   "foo.b"
+         "foo.[c-h]"   "foo.i")))
 
 ;; glob ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -100,18 +101,18 @@
   (binding [clojure.contrib.io/as-file (fn [_] start-dir)]
     (map #(.getName %) (glob pattern))))
 
-(deftest glob-matches-shallow
-  (are [pattern files] (= (glob* pattern shallow-fs) files)
-       "*"            ["cat.jpg" "dog.jpg" "lol.gif"]
-       "*.*"          ["cat.jpg" "dog.jpg" "lol.gif"]
-       ".*"           [".hidden"]
-       "*.jpg"        ["cat.jpg" "dog.jpg"]
-       "*.{jpg,gif}"  ["cat.jpg" "dog.jpg" "lol.gif"]))
-
-(deftest glob-matches-deep
-  (are [pattern files] (= (glob* pattern deep-fs) files)
-       "/*"         ["usr"]
-       "/usr/*"     ["bin" "lib" "sbin" "share"]
-       "/usr/*/se*" ["sed" "segedit" "sendmail"]
-       "/*/*/a*"    ["awk" "arp"]
-       "/*/*/*/*"   ["man1" "man2" "man3"]))
+(deftest test-glob
+  (testing "Simple, shallow (single-level) matching"
+    (are [pattern files] (= (glob* pattern shallow-fs) files)
+         "*"            ["cat.jpg" "dog.jpg" "lol.gif"]
+         "*.*"          ["cat.jpg" "dog.jpg" "lol.gif"]
+         ".*"           [".hidden"]
+         "*.jpg"        ["cat.jpg" "dog.jpg"]
+         "*.{jpg,gif}"  ["cat.jpg" "dog.jpg" "lol.gif"]))
+  (testing "Deep (multi-level) matching"
+    (are [pattern files] (= (glob* pattern deep-fs) files)
+         "/*"         ["usr"]
+         "/usr/*"     ["bin" "lib" "sbin" "share"]
+         "/usr/*/se*" ["sed" "segedit" "sendmail"]
+         "/*/*/a*"    ["awk" "arp"]
+         "/*/*/*/*"   ["man1" "man2" "man3"])))

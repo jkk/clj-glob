@@ -1,6 +1,7 @@
 (ns org.satta.glob-test
   (:use [org.satta.glob] :reload-all)
-  (:use [clojure.test]))
+  (:use [clojure.test])
+  (:import [java.io File]))
 
 ;; glob->regex ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -59,33 +60,24 @@
 
 ;; glob ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro mock
-  "Creates a mock object given class name and pairs of method stubs."
-  [class & stubs]
-  (let [mocked (gensym)]
-    `(let [~mocked (org.mockito.Mockito/mock ~class)]
-       ~@(map (fn [[method returns]]
-                (list '.thenReturn
-                      (list 'org.mockito.Mockito/when
-                            (list (symbol (str \. method)) mocked)) returns))
-              (partition 2 stubs))
-       ~mocked)))
+(defn mock-fs
+  "Takes a tree of vectors and returns a minimal, fake file/dir hierarchy.
+  Only getName and listFiles will return reliable (fake) results."
+  [node]
+  (if (vector? node)
+    (proxy [File] [(first node)]
+      (listFiles [] (into-array File (map mock-fs (rest node)))))
+    (File. node)))
 
-(defn- mock-fs
-  "Takes a tree of vectors and returns a mock file/dir hierarchy"
-  [file]
-  (if (vector? file)
-    (let [[dir & files] file
-          children (into-array java.io.File (map mock-fs files))]
-      (mock java.io.File
-            getName dir
-            isDirectory true
-            isFile false
-            listFiles children))
-    (mock java.io.File
-          getName file
-          isDirectory false
-          isFile true)))
+(deftest test-mock-fs
+  (let [fs (mock-fs ["/" ["foo" "subfoo1" "subfoo2"] "bar" "baz"])]
+    (is (= fs (File. "/")))
+    (is (= (seq (.listFiles fs))
+           [(File. "foo") (File. "bar") (File. "baz")]))
+    (is (= (seq (.listFiles (first (.listFiles fs))))
+           [(File. "subfoo1") (File. "subfoo2")]))
+    (is (= (map #(.getName %) (.listFiles fs))
+           ["foo" "bar" "baz"]))))
 
 (def shallow-fs
      (mock-fs

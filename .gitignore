@@ -3,3 +3,6 @@ pom.xml
 lib
 classes
 *~
+*.iml
+*.iws
+*.ipr

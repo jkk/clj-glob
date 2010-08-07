@@ -2,8 +2,6 @@
   (:use [clojure.contrib.io :only [as-file]])
   (:import [java.io File StringReader]))
 
-;; TODO: make Windows-friendly
-
 (defn- glob->regex
   "Takes a glob-format string and returns a regex."
   [s]
@@ -26,16 +24,38 @@
          (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur j (str re \\ c) curly-depth)
          :else (recur j (str re c) curly-depth))))))
 
+(defn- abs-path?
+  "Returns true if the specified path is absolute, false otherwise."
+  [path]
+  (or
+    (= \/ (first path))      ; /home/qertoip
+    (= \: (second path))))   ; c:/windows
+
+(defn- start-dir
+  "Returns a start directory for recursive traversal as File instance."
+  [path]
+  (as-file
+    (if (abs-path? path)
+      (if (= \: (second path))
+        (subs path 0 3)        ; c:/
+        "/")                   ; /
+      ".")))                   ; .
+
+(defn- first-slash
+  "Returns index of the first slash, plus 1"
+  [s]
+  (inc (.indexOf s "/")))
+
 (defn glob
   "Returns a list of java.io.File instances that match the given glob pattern.
   Ignores dot files unless explicitly included.
 
   Examples: (glob \"*.{jpg,gif}\") (glob \".*\") (glob \"/usr/*/se*\")"
   [pattern]
-  (let [abs-path? (= \/ (first pattern))
-        start-dir (as-file (if abs-path? "/" "."))
-        patterns (map glob->regex
-                      (.split (if abs-path? (subs pattern 1) pattern) "/"))
-        expand (fn [re dir]
-                 (filter #(re-matches re (.getName %)) (.listFiles dir)))]
+  (let [abs-path? (abs-path? pattern)
+        start-dir (start-dir pattern)
+        splitted  (.split (if abs-path? (subs pattern (first-slash pattern)) pattern) "/")
+        patterns  (map glob->regex splitted)
+        expand    (fn [re dir]
+                    (filter #(re-matches re (.getName %)) (.listFiles dir)))]
     (reduce #(mapcat (partial expand %2) %1) [start-dir] patterns)))

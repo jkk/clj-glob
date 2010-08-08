@@ -32,13 +32,8 @@
          "*,*"         "foo,bar"
          "foo\\*bar"   "foo*bar"
          ".()|+^$@%"   ".()|+^$@%"
-         "foo/bar.*"   "foo/bar.baz"
-         "foo/*.baz"   "foo/bar.baz"
-         "*/*"         "foo/bar.baz"
          ".*.foo"      ".bar.foo"
          ".*bar.foo"   ".bar.foo"
-         ".*/bar"      ".foo/bar"
-         "foo/.*"      "foo/.bar"
          "foo.[ch]"    "foo.c"
          "foo.[ch]"    "foo.h"
          "foo.[c-h]"   "foo.c"
@@ -50,7 +45,6 @@
          "*.*"         ".foo"
          "*.foo"       ".bar.foo"
          "*.bar.foo"   ".bar.foo"
-         "foo/*"       "foo/.bar"
          "?bar.foo"    ".bar.foo"))
   (testing "Character ranges that shouldn't match"
     (are [pattern path] (not (matches? pattern path))
@@ -92,7 +86,7 @@
         ["lib" "pam" "samba" "java"]
         ["sbin" "arp" "fdisk" "sendmail" "tcpdump"]
         ["share"
-         ["man" "man1" "man2" "man3"]]]]))
+         ["man" "man1" "man2" "man3" ".hidden"]]]]))
 
 (defn glob*
   "Glob with a fake filesystem. Also returns seq of file names rather
@@ -115,4 +109,5 @@
          "/usr/*"     ["bin" "lib" "sbin" "share"]
          "/usr/*/se*" ["sed" "segedit" "sendmail"]
          "/*/*/a*"    ["awk" "arp"]
-         "/*/*/*/*"   ["man1" "man2" "man3"])))
+         "/*/*/*/*"   ["man1" "man2" "man3"]
+         "/*/*/*/.*"  [".hidden"])))

@@ -1,6 +1,6 @@
 (ns org.satta.glob
   (:use [clojure.contrib.io :only [as-file]])
-  (:import [java.io File StringReader]))
+  (:import [java.io StringReader]))
 
 ;; TODO: make Windows-friendly
 
@@ -16,8 +16,6 @@
         (cond
          (= i -1) (re-pattern (str (if (= \. (first s)) "" "(?=[^\\.])") re))
          (= c \\) (recur (.read stream) (str re c (char j)) curly-depth)
-         (= c \/) (recur j (str re (if (= \. (char j)) c "/(?=[^\\.])"))
-                         curly-depth)
          (= c \*) (recur j (str re "[^/]*") curly-depth)
          (= c \?) (recur j (str re "[^/]") curly-depth)
          (= c \{) (recur j (str re \() (inc curly-depth))
@@ -27,7 +25,7 @@
          :else (recur j (str re c) curly-depth))))))
 
 (defn glob
-  "Returns a list of java.io.File instances that match the given glob pattern.
+  "Returns a seq of java.io.File instances that match the given glob pattern.
   Ignores dot files unless explicitly included.
 
   Examples: (glob \"*.{jpg,gif}\") (glob \".*\") (glob \"/usr/*/se*\")"

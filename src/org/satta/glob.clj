@@ -1,5 +1,5 @@
 (ns org.satta.glob
-  (:use [clojure.contrib.io :only [as-file]])
+  (:use [clojure.java.io :only [as-file]])
   (:import [java.io File StringReader]))
 
 ;; TODO: make Windows-friendly

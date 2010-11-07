@@ -15,24 +15,22 @@
 (defn- glob->regex
   "Takes a glob-format string and returns a regex."
   [s]
-  (let [stream (StringReader. s)]
-    (loop [i (.read stream)
-           re ""
-           curly-depth 0]
-      (let [c (if (= i -1) nil (char i))
-            j (.read stream)]
+  (loop [stream s
+	 re ""
+	 curly-depth 0]
+    (let [[c j] stream]
         (cond
-         (= i -1) (re-pattern (str (if (= \. (first s)) "" "(?=[^\\.])") re))
-         (= c \\) (recur (.read stream) (str re c (char j)) curly-depth)
-         (= c \/) (recur j (str re (if (= \. (char j)) c "/(?=[^\\.])"))
+         (nil? c) (re-pattern (str (if (= \. (first s)) "" "(?=[^\\.])") re))
+         (= c \\) (recur (nnext stream) (str re c j) curly-depth)
+         (= c \/) (recur (next stream) (str re (if (= \. j) c "/(?=[^\\.])"))
                          curly-depth)
-         (= c \*) (recur j (str re "[^/]*") curly-depth)
-         (= c \?) (recur j (str re "[^/]") curly-depth)
-         (= c \{) (recur j (str re \() (inc curly-depth))
-         (= c \}) (recur j (str re \)) (dec curly-depth))
-         (and (= c \,) (< 0 curly-depth)) (recur j (str re \|) curly-depth)
-         (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur j (str re \\ c) curly-depth)
-         :else (recur j (str re c) curly-depth))))))
+         (= c \*) (recur (next stream) (str re "[^/]*") curly-depth)
+         (= c \?) (recur (next stream) (str re "[^/]") curly-depth)
+         (= c \{) (recur (next stream) (str re \() (inc curly-depth))
+         (= c \}) (recur (next stream) (str re \)) (dec curly-depth))
+         (and (= c \,) (< 0 curly-depth)) (recur (next stream) (str re \|) curly-depth)
+         (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur (next stream) (str re \\ c) curly-depth)
+         :else (recur (next stream) (str re c) curly-depth)))))
 
 (defn glob
   "Returns a list of java.io.File instances that match the given glob pattern.

@@ -4,6 +4,14 @@
 
 ;; TODO: make Windows-friendly
 
+(def
+  ^{:doc "Start directory for absolute path globbing"}
+  *root-file* (as-file "/"))
+
+(def
+  ^{:doc "Start directory for relative path globbing"}
+  *cwd-file* (as-file "."))
+
 (defn- glob->regex
   "Takes a glob-format string and returns a regex."
   [s]
@@ -33,7 +41,7 @@
   Examples: (glob \"*.{jpg,gif}\") (glob \".*\") (glob \"/usr/*/se*\")"
   [pattern]
   (let [abs-path? (= \/ (first pattern))
-        start-dir (as-file (if abs-path? "/" "."))
+        start-dir (if abs-path? *root-file* *cwd-file*)
         patterns (map glob->regex
                       (.split (if abs-path? (subs pattern 1) pattern) "/"))
         expand (fn [re dir]

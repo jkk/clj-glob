@@ -92,7 +92,8 @@
   "Glob with a fake filesystem. Also returns seq of file names rather
   than File instances."
   [pattern start-dir]
-  (binding [clojure.contrib.io/as-file (fn [_] start-dir)]
+  (binding [*root-file* start-dir
+	    *cwd-file* start-dir]
     (map #(.getName %) (glob pattern))))
 
 (deftest test-glob

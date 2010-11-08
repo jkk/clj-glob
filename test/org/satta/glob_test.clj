@@ -93,7 +93,7 @@
   than File instances."
   [pattern start-dir]
   (binding [*root-file* start-dir
-	    *cwd-file* start-dir]
+            *cwd-file* start-dir]
     (map #(.getName %) (glob pattern))))
 
 (deftest test-glob

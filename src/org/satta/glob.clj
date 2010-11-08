@@ -16,8 +16,8 @@
   "Takes a glob-format string and returns a regex."
   [s]
   (loop [stream s
-	 re ""
-	 curly-depth 0]
+         re ""
+         curly-depth 0]
     (let [[c j] stream]
         (cond
          (nil? c) (re-pattern (str (if (= \. (first s)) "" "(?=[^\\.])") re))

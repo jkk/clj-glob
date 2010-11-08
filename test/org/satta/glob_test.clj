@@ -1,6 +1,6 @@
 (ns org.satta.glob-test
-  (:use [org.satta.glob] :reload-all)
-  (:use [clojure.test])
+  (:use [org.satta.glob :only [glob]] :reload-all)
+  (:use [clojure.test :only [deftest testing is are]])
   (:import [java.io File]))
 
 ;; glob->regex ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -30,7 +30,6 @@
       "{foo,bar}"   "bar"
       "foo,bar"     "foo,bar"
       "*,*"         "foo,bar"
-      "foo\\*bar"   "foo*bar"
       ".()|+^$@%"   ".()|+^$@%"
       ".*.foo"      ".bar.foo"
       ".*bar.foo"   ".bar.foo"
@@ -88,12 +87,22 @@
      ["share"
       ["man" "man1" "man2" "man3" ".hidden"]]]]))
 
+(def windows-fs
+  (mock-fs
+   ["c:/"
+    ["usr"
+     ["bin" "awk" "bzip" "cd" "diff" "sed" "segedit" "xargs"]
+     ["lib" "pam" "samba" "java"]
+     ["sbin" "arp" "fdisk" "sendmail" "tcpdump"]
+     ["share"
+      ["man" "man1" "man2" "man3" ".hidden"]]]]))
+
 (defn glob*
   "Glob with a fake filesystem. Also returns seq of file names rather
   than File instances."
   [pattern start-dir]
-  (binding [*root-file* start-dir
-            *cwd-file* start-dir]
+  (binding [org.satta.glob/get-root-file (constantly start-dir)
+            org.satta.glob/get-cwd-file (constantly start-dir)]
     (map #(.getName %) (glob pattern))))
 
 (deftest test-glob
@@ -111,4 +120,13 @@
       "/usr/*/se*" ["sed" "segedit" "sendmail"]
       "/*/*/a*"    ["awk" "arp"]
       "/*/*/*/*"   ["man1" "man2" "man3"]
-      "/*/*/*/.*"  [".hidden"])))
+      "/*/*/*/.*"  [".hidden"]))
+  (testing "Windows filesystem matching"
+    (are [pattern files] (= (glob* pattern windows-fs) files)
+      "c:\\*"         ["usr"]
+      "c:\\usr\\*"     ["bin" "lib" "sbin" "share"]
+      "c:\\usr\\*\\se*" ["sed" "segedit" "sendmail"]
+      "c:/usr/*/se*" ["sed" "segedit" "sendmail"]
+      "c:\\*\\*\\a*"    ["awk" "arp"]
+      "c:\\*\\*\\*\\*"   ["man1" "man2" "man3"]
+      "c:\\*\\*\\*\\.*"  [".hidden"])))

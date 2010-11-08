@@ -1,16 +1,6 @@
 (ns org.satta.glob
   (:use [clojure.java.io :only [as-file]])
-  (:import [java.io File StringReader]))
-
-;; TODO: make Windows-friendly
-
-(def
-  ^{:doc "Start directory for absolute path globbing"}
-  *root-file* (as-file "/"))
-
-(def
-  ^{:doc "Start directory for relative path globbing"}
-  *cwd-file* (as-file "."))
+  (:import [java.io File]))
 
 (defn- glob->regex
   "Takes a glob-format string and returns a regex."
@@ -21,16 +11,33 @@
     (let [[c j] stream]
         (cond
          (nil? c) (re-pattern (str (if (= \. (first s)) "" "(?=[^\\.])") re))
-         (= c \\) (recur (nnext stream) (str re c j) curly-depth)
+         (= c \\) (recur (nnext stream) (str re c c) curly-depth)
          (= c \/) (recur (next stream) (str re (if (= \. j) c "/(?=[^\\.])"))
                          curly-depth)
          (= c \*) (recur (next stream) (str re "[^/]*") curly-depth)
          (= c \?) (recur (next stream) (str re "[^/]") curly-depth)
          (= c \{) (recur (next stream) (str re \() (inc curly-depth))
          (= c \}) (recur (next stream) (str re \)) (dec curly-depth))
-         (and (= c \,) (< 0 curly-depth)) (recur (next stream) (str re \|) curly-depth)
-         (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur (next stream) (str re \\ c) curly-depth)
+         (and (= c \,) (< 0 curly-depth)) (recur (next stream) (str re \|)
+                                                 curly-depth)
+         (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur (next stream) (str re \\ c)
+                                                  curly-depth)
          :else (recur (next stream) (str re c) curly-depth)))))
+
+;; compromise to aid in testing
+(defn- get-root-file
+  [root-name]
+  (as-file (str root-name "/")))
+
+(defn- get-cwd-file
+  []
+  (as-file "."))
+
+(defn- filter-dir
+  "Filters dir for files with names matching pattern re"
+  [^File dir re]
+  (filter #(re-matches re (.getName ^File %))
+          (.listFiles dir)))
 
 (defn glob
   "Returns a seq of java.io.File instances that match the given glob pattern.
@@ -38,10 +45,13 @@
 
   Examples: (glob \"*.{jpg,gif}\") (glob \".*\") (glob \"/usr/*/se*\")"
   [pattern]
-  (let [abs-path? (= \/ (first pattern))
-        start-dir (if abs-path? *root-file* *cwd-file*)
-        patterns (map glob->regex
-                      (.split (if abs-path? (subs pattern 1) pattern) "/"))
-        expand (fn [re dir]
-                 (filter #(re-matches re (.getName %)) (.listFiles dir)))]
-    (reduce #(mapcat (partial expand %2) %1) [start-dir] patterns)))
+  (let [[root & _ :as parts] (.split #"[\\/]" pattern)
+        abs? (or (empty? root) ;unix
+                 (= \: (second root))) ;windows
+        start-dir (if abs? (get-root-file root) (get-cwd-file))
+        patterns (map glob->regex (if abs? (rest parts) parts))]
+    (reduce
+     (fn [files re]
+       (mapcat #(filter-dir % re) files))
+     [start-dir]
+     patterns)))

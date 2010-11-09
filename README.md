@@ -17,11 +17,7 @@ Finds files based on glob patterns like `"*.jpg"` or `"/usr/*/se*"`. Similar to 
 
 Add this dependency to your project.clj:
 
-    [clj-glob "0.1.0"]
-
-## Caveats
-
-Untested on Windows.
+    [clj-glob "1.0.0"]
 
 ## License
 
